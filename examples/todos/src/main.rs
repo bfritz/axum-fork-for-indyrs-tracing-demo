@@ -29,6 +29,7 @@ use std::{
 };
 use tower::{BoxError, ServiceBuilder};
 use tower_http::{add_extension::AddExtensionLayer, trace::TraceLayer};
+use tracing::{event, Level};
 use tracing_subscriber::{fmt::format::FmtSpan, layer::SubscriberExt, EnvFilter};
 use uuid::Uuid;
 
@@ -95,6 +96,7 @@ async fn todos_index(
 ) -> impl IntoResponse {
     let Query(pagination) = pagination.unwrap_or_default();
 
+    event!(Level::INFO, "GET /todos");
     let todos = db::find_all_todos(pool, pagination)
         .await
         .expect("`todo` table query failed"); // FIXME: use error result
