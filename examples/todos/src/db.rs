@@ -3,6 +3,7 @@ use sqlx::postgres::PgPool;
 use crate::Pagination;
 use crate::Todo;
 
+#[tracing::instrument(level = "info")]
 pub async fn find_all_todos(pool: PgPool, pagination: Pagination) -> anyhow::Result<Vec<Todo>> {
     let limit: i64 = pagination.limit.unwrap_or(i64::MAX);
     let offset: i64 = pagination.offset.unwrap_or(0);
@@ -22,6 +23,7 @@ OFFSET $2
     Ok(todos)
 }
 
+#[tracing::instrument(level = "info")]
 pub async fn find_one_todo(pool: &PgPool, id: uuid::Uuid) -> anyhow::Result<Option<Todo>> {
     let todo = sqlx::query_as!(Todo,
         r#"
@@ -36,6 +38,7 @@ WHERE id = $1
     Ok(todo)
 }
 
+#[tracing::instrument(level = "info")]
 pub async fn insert_todo(pool: PgPool, todo: Todo) -> anyhow::Result<Todo> {
     let todo = sqlx::query_as!(Todo,
         r#"
@@ -52,6 +55,7 @@ RETURNING id, text, completed
     Ok(todo)
 }
 
+#[tracing::instrument(level = "info")]
 pub async fn update_todo(pool: PgPool, todo: Todo) -> anyhow::Result<Todo> {
     let todo = sqlx::query_as!(Todo,
         r#"
@@ -70,6 +74,7 @@ RETURNING id, text, completed
     Ok(todo)
 }
 
+#[tracing::instrument(level = "info")]
 pub async fn delete_todo(pool: PgPool, id: uuid::Uuid) -> anyhow::Result<Option<uuid::Uuid>> {
     let delete_count = sqlx::query!("DELETE FROM todos WHERE id = $1", id)
         .execute(&pool)
