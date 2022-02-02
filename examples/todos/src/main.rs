@@ -29,6 +29,7 @@ use std::{
 };
 use tower::{BoxError, ServiceBuilder};
 use tower_http::{add_extension::AddExtensionLayer, trace::TraceLayer};
+use tracing_subscriber::{fmt::format::FmtSpan, layer::SubscriberExt, EnvFilter};
 use uuid::Uuid;
 
 pub mod db;
@@ -39,7 +40,8 @@ async fn main() -> anyhow::Result<()> {
     if std::env::var_os("RUST_LOG").is_none() {
         std::env::set_var("RUST_LOG", "example_todos=debug,tower_http=debug")
     }
-    tracing_subscriber::fmt::init();
+
+    init_tracing()?;
 
     let db_url = std::env::var_os("DATABASE_URL")
         .unwrap_or_else(|| std::ffi::OsString::from("postgres://postgres@localhost:5432/todos"))
@@ -163,6 +165,32 @@ async fn todos_delete(Path(id): Path<Uuid>, Extension(pool): Extension<PgPool>) 
     } else {
         StatusCode::NOT_FOUND
     }
+}
+
+fn init_tracing() -> anyhow::Result<()> {
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_span_events(FmtSpan::CLOSE);
+
+    let jaeger_tracer = opentelemetry_jaeger::new_pipeline()
+        .with_service_name("todo-service")
+        .install_simple()?;
+
+    let opentelemetry_layer = tracing_opentelemetry::layer()
+        .with_tracer(jaeger_tracer);
+
+    let filter_layer = EnvFilter::try_from_default_env()
+        .or_else(|_| EnvFilter::try_new("info"))
+        .unwrap()
+        .add_directive("hyper=info".parse()?);
+
+    let subscriber = tracing_subscriber::Registry::default()
+        .with(fmt_layer)
+        .with(opentelemetry_layer)
+        .with(filter_layer);
+
+     tracing::subscriber::set_global_default(subscriber)?;
+
+     Ok(())
 }
 
 #[derive(Debug, Serialize, Clone)]

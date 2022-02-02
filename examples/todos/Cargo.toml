@@ -17,3 +17,7 @@ serde = { version = "1.0", features = ["derive"] }
 # added for Indy Rust tracing.rs demo
 anyhow = "1.0"
 sqlx = { version = "0.5", features = ["postgres", "runtime-tokio-rustls", "uuid"] }
+
+tracing-opentelemetry = "0.16"
+opentelemetry = "0.16"
+opentelemetry-jaeger = "0.15"
